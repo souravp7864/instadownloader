@@ -49,12 +49,11 @@ if ($method === 'POST') {
 function processUpdate($update) {
     try {
         // Log the update
-        file_put_contents('error.log', date('Y-m-d H:i:s') . " - Received update: " . json_encode($update) . "\n", FILE_APPEND);
+        file_put_contents('error.log', date('Y-m-d H:i:s') . " - Received update\n", FILE_APPEND);
         
         // Extract chat ID and message text
         $chatId = $update['message']['chat']['id'] ?? null;
         $text = $update['message']['text'] ?? '';
-        $messageId = $update['message']['message_id'] ?? null;
         
         if (!$chatId) {
             return;
@@ -92,7 +91,7 @@ function handleInstagramUrl($chatId, $url) {
         // Generate unique filename
         $filename = $downloadDir . '/reel_' . md5($url . time()) . '.mp4';
         
-        // Download using yt-dlp - simplified command
+        // Download using yt-dlp
         $command = "yt-dlp -f mp4 -o " . escapeshellarg($filename) . " " . escapeshellarg($url) . " 2>&1";
         
         file_put_contents('error.log', date('Y-m-d H:i:s') . " - Executing: " . $command . "\n", FILE_APPEND);
@@ -102,7 +101,7 @@ function handleInstagramUrl($chatId, $url) {
         file_put_contents('error.log', date('Y-m-d H:i:s') . " - Output: " . $output . "\n", FILE_APPEND);
         
         // Check if file was created
-        if (file_exists($filename) && filesize($filename) > 10000) { // At least 10KB
+        if (file_exists($filename) && filesize($filename) > 10000) {
             $fileSize = filesize($filename);
             file_put_contents('error.log', date('Y-m-d H:i:s') . " - Success: " . $filename . " (" . round($fileSize/1024/1024, 2) . "MB)\n", FILE_APPEND);
             
@@ -141,15 +140,13 @@ function sendMessage($chatId, $text) {
     
     $data = [
         'chat_id' => $chatId,
-        'text' => $text,
-        'parse_mode' => 'HTML'
+        'text' => $text
     ];
     
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, "https://api.telegram.org/bot{$botToken}/sendMessage");
     curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
-    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_TIMEOUT, 10);
     
@@ -158,7 +155,7 @@ function sendMessage($chatId, $text) {
     curl_close($ch);
     
     if ($httpCode !== 200) {
-        file_put_contents('error.log', date('Y-m-d H:i:s') . " - Failed to send message: " . $response . "\n", FILE_APPEND);
+        file_put_contents('error.log', date('Y-m-d H:i:s') . " - Failed to send message. HTTP Code: " . $httpCode . "\n", FILE_APPEND);
     }
 }
 
@@ -184,7 +181,7 @@ function sendVideo($chatId, $videoPath) {
     curl_close($ch);
     
     if ($httpCode !== 200) {
-        file_put_contents('error.log', date('Y-m-d H:i:s') . " - Failed to send video: " . $response . "\n", FILE_APPEND);
+        file_put_contents('error.log', date('Y-m-d H:i:s') . " - Failed to send video. HTTP Code: " . $httpCode . "\n", FILE_APPEND);
     }
 }
 
@@ -301,15 +298,6 @@ function logUser($chatId, $chatInfo) {
     ];
     
     file_put_contents($usersFile, json_encode($users, JSON_PRETTY_PRINT));
-    
-    // Update user count for statistics
-    $statsFile = 'stats.json';
-    $stats = [
-        'total_users' => count($users),
-        'last_updated' => date('Y-m-d H:i:s')
-    ];
-    
-    file_put_contents($statsFile, json_encode($stats, JSON_PRETTY_PRINT));
 }
 
 // Handle shutdown

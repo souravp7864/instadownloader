@@ -3,19 +3,11 @@
     "description": "Instagram Reels Downloader Telegram Bot",
     "type": "project",
     "require": {
-        "php": "^8.1",
-        "ext-curl": "*",
-        "ext-json": "*",
-        "ext-zip": "*"
+        "php": "^8.1"
     },
     "autoload": {
         "psr-4": {
             "App\\": "src/"
         }
-    },
-    "config": {
-        "platform-check": false
-    },
-    "minimum-stability": "stable",
-    "prefer-stable": true
+    }
 }

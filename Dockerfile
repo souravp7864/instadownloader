@@ -7,14 +7,11 @@ RUN apt-get update && apt-get install -y \
     python3 \
     && rm -rf /var/lib/apt/lists/*
 
-# Install PHP extensions
-RUN docker-php-ext-install zip
-
 # Install yt-dlp standalone binary
 RUN wget -q https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -O /usr/local/bin/yt-dlp
 RUN chmod a+rx /usr/local/bin/yt-dlp
 
-# Test yt-dlp
+# Verify yt-dlp installation
 RUN yt-dlp --version
 
 # Configure Apache
