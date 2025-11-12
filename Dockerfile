@@ -4,19 +4,28 @@ FROM php:8.2-apache
 RUN apt-get update && apt-get install -y \
     git \
     curl \
+    wget \
     libzip-dev \
     libcurl4-openssl-dev \
     pkg-config \
     python3 \
     python3-pip \
+    python3-venv \
     ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
 # Install PHP extensions
 RUN docker-php-ext-install zip curl
 
-# Install yt-dlp
-RUN pip3 install yt-dlp
+# Install yt-dlp using the official method (more reliable)
+RUN wget https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -O /usr/local/bin/yt-dlp
+RUN chmod a+rx /usr/local/bin/yt-dlp
+
+# Install yt-dlp dependencies
+RUN apt-get update && apt-get install -y \
+    python3 \
+    python3-pip \
+    && pip3 install --no-cache-dir websockets
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
@@ -43,7 +52,7 @@ EXPOSE 8080
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8080/ || exit 1
+    CMD curl -f http://localhost:80/ || exit 1
 
 # Start Apache
 CMD ["apache2-foreground"]
