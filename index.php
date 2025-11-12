@@ -14,16 +14,6 @@ function log_error($message) {
 
 // Test basic functionality
 log_error("=== Application Started ===");
-log_error("PHP Version: " . PHP_VERSION);
-log_error("Method: " . ($_SERVER['REQUEST_METHOD'] ?? 'UNKNOWN'));
-
-// Check if yt-dlp is available
-$ytdlp_test = shell_exec('which yt-dlp');
-log_error("yt-dlp available: " . ($ytdlp_test ? 'YES' : 'NO'));
-
-// Check if ffmpeg is available  
-$ffmpeg_test = shell_exec('which ffmpeg');
-log_error("ffmpeg available: " . ($ffmpeg_test ? 'YES' : 'NO'));
 
 // Get request method
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
@@ -49,6 +39,8 @@ try {
             removeWebhook();
         } elseif (isset($_GET['info'])) {
             showBotInfo();
+        } elseif (isset($_GET['getwebhookinfo'])) {
+            getWebhookInfo();
         } else {
             // Health check
             echo "Telegram Bot Service - Online\n";
@@ -59,6 +51,8 @@ try {
             $botToken = getenv('BOT_TOKEN');
             if ($botToken && $botToken !== 'your_bot_token_here') {
                 echo "Bot Token: SET\n";
+                echo "Webhook URL: https://instadownloader-p1yc.onrender.com/\n";
+                echo "To set webhook: https://instadownloader-p1yc.onrender.com/?setwebhook=1\n";
             } else {
                 echo "Bot Token: NOT SET - Please set BOT_TOKEN environment variable\n";
             }
@@ -69,6 +63,119 @@ try {
     http_response_code(500);
     echo "Internal Server Error - Check logs";
 }
+
+function setupWebhook() {
+    $botToken = getenv('BOT_TOKEN');
+    if (!$botToken || $botToken === 'your_bot_token_here') {
+        echo "ERROR: BOT_TOKEN not set\n";
+        return;
+    }
+    
+    // Force HTTPS for Render - use your exact Render URL
+    $webhookUrl = 'https://instadownloader-p1yc.onrender.com/';
+    
+    log_error("Setting webhook to: " . $webhookUrl);
+    
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, "https://api.telegram.org/bot{$botToken}/setWebhook");
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, ['url' => $webhookUrl]);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+    
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    
+    if (curl_error($ch)) {
+        $error = curl_error($ch);
+        curl_close($ch);
+        log_error("cURL error: " . $error);
+        echo "ERROR: cURL error - " . $error . "\n";
+        return;
+    }
+    
+    curl_close($ch);
+    
+    $result = json_decode($response, true);
+    
+    if ($result['ok']) {
+        echo "SUCCESS: Webhook set to: $webhookUrl\n";
+        echo "Webhook info:\n";
+        echo "- URL: " . $webhookUrl . "\n";
+        echo "- Has custom certificate: " . ($result['result']['has_custom_certificate'] ? 'yes' : 'no') . "\n";
+        echo "- Pending update count: " . $result['result']['pending_update_count'] . "\n";
+    } else {
+        echo "ERROR: Failed to set webhook: " . ($result['description'] ?? 'Unknown error') . "\n";
+        log_error("Webhook setup failed: " . ($result['description'] ?? 'Unknown error'));
+        
+        // Additional debug info
+        echo "Debug info:\n";
+        echo "- HTTP Code: $httpCode\n";
+        echo "- Full response: " . $response . "\n";
+        
+        // Suggest alternative
+        echo "\nAlternative: Set webhook manually via:\n";
+        echo "https://api.telegram.org/bot{$botToken}/setWebhook?url={$webhookUrl}\n";
+    }
+}
+
+function getWebhookInfo() {
+    $botToken = getenv('BOT_TOKEN');
+    if (!$botToken || $botToken === 'your_bot_token_here') {
+        echo "ERROR: BOT_TOKEN not set\n";
+        return;
+    }
+    
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, "https://api.telegram.org/bot{$botToken}/getWebhookInfo");
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+    
+    $response = curl_exec($ch);
+    curl_close($ch);
+    
+    $result = json_decode($response, true);
+    
+    if ($result['ok']) {
+        echo "Webhook Info:\n";
+        echo "URL: " . ($result['result']['url'] ?? 'Not set') . "\n";
+        echo "Has custom certificate: " . ($result['result']['has_custom_certificate'] ? 'yes' : 'no') . "\n";
+        echo "Pending update count: " . ($result['result']['pending_update_count'] ?? '0') . "\n";
+        echo "Last error date: " . ($result['result']['last_error_date'] ?? 'Never') . "\n";
+        echo "Last error message: " . ($result['result']['last_error_message'] ?? 'None') . "\n";
+    } else {
+        echo "ERROR: Failed to get webhook info\n";
+    }
+}
+
+function removeWebhook() {
+    $botToken = getenv('BOT_TOKEN');
+    if (!$botToken || $botToken === 'your_bot_token_here') {
+        echo "ERROR: BOT_TOKEN not set\n";
+        return;
+    }
+    
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, "https://api.telegram.org/bot{$botToken}/deleteWebhook");
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, []);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+    
+    $response = curl_exec($ch);
+    curl_close($ch);
+    
+    $result = json_decode($response, true);
+    
+    if ($result['ok']) {
+        echo "SUCCESS: Webhook removed\n";
+    } else {
+        echo "ERROR: Failed to remove webhook\n";
+    }
+}
+
+// ... keep the rest of your functions (processUpdate, handleInstagramUrl, sendMessage, etc.) the same ...
+// Include all the other functions from your previous index.php here
 
 function processUpdate($update) {
     log_error("Processing update");
@@ -188,62 +295,6 @@ function sendVideo($chatId, $videoPath) {
     
     if ($httpCode !== 200) {
         log_error("Failed to send video. HTTP: $httpCode");
-    }
-}
-
-function setupWebhook() {
-    $botToken = getenv('BOT_TOKEN');
-    if (!$botToken || $botToken === 'your_bot_token_here') {
-        echo "ERROR: BOT_TOKEN not set\n";
-        return;
-    }
-    
-    $protocol = isset($_SERVER['HTTPS']) ? 'https' : 'http';
-    $host = $_SERVER['HTTP_HOST'];
-    $webhookUrl = $protocol . '://' . $host . '/';
-    
-    $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, "https://api.telegram.org/bot{$botToken}/setWebhook");
-    curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, ['url' => $webhookUrl]);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-    
-    $response = curl_exec($ch);
-    curl_close($ch);
-    
-    $result = json_decode($response, true);
-    
-    if ($result['ok']) {
-        echo "SUCCESS: Webhook set to: $webhookUrl\n";
-    } else {
-        echo "ERROR: Failed to set webhook: " . ($result['description'] ?? 'Unknown error') . "\n";
-    }
-}
-
-function removeWebhook() {
-    $botToken = getenv('BOT_TOKEN');
-    if (!$botToken || $botToken === 'your_bot_token_here') {
-        echo "ERROR: BOT_TOKEN not set\n";
-        return;
-    }
-    
-    $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, "https://api.telegram.org/bot{$botToken}/deleteWebhook");
-    curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, []);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-    
-    $response = curl_exec($ch);
-    curl_close($ch);
-    
-    $result = json_decode($response, true);
-    
-    if ($result['ok']) {
-        echo "SUCCESS: Webhook removed\n";
-    } else {
-        echo "ERROR: Failed to remove webhook\n";
     }
 }
 
