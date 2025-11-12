@@ -1,27 +1,13 @@
 RewriteEngine On
 
-# Redirect all requests to index.php
-RewriteCond %{REQUEST_FILENAME} !-f
+# If the requested filename is not a directory
 RewriteCond %{REQUEST_FILENAME} !-d
+# If the requested filename is not a regular file that exists
+RewriteCond %{REQUEST_FILENAME} !-f
+# Route everything to index.php
 RewriteRule ^(.*)$ index.php [QSA,L]
 
-# Security headers
-Header always set X-Content-Type-Options nosniff
-Header always set X-Frame-Options DENY
-Header always set X-XSS-Protection "1; mode=block"
-
-# Prevent access to sensitive files
-<Files "*.json">
-    Order allow,deny
+# Security - prevent access to various files
+<FilesMatch "\.(json|log|env)$">
     Deny from all
-</Files>
-
-<Files "*.log">
-    Order allow,deny
-    Deny from all
-</Files>
-
-<Files ".env">
-    Order allow,deny
-    Deny from all
-</Files>
+</FilesMatch>

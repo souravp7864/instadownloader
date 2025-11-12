@@ -3,8 +3,13 @@ FROM php:8.2-apache
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     wget \
+    curl \
     ffmpeg \
     python3 \
+    libzip-dev \
+    zip \
+    unzip \
+    && docker-php-ext-install zip \
     && rm -rf /var/lib/apt/lists/*
 
 # Install yt-dlp standalone binary
@@ -25,7 +30,6 @@ COPY . /var/www/html/
 RUN chown -R www-data:www-data /var/www/html \
     && chmod 666 /var/www/html/users.json \
     && chmod 666 /var/www/html/error.log \
-    && touch /var/www/html/stats.json \
     && chmod 666 /var/www/html/stats.json
 
 # Create download directory
