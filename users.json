@@ -1,8 +1,8 @@
 {
-  "users": {},
-  "statistics": {
-    "total_downloads": 0,
-    "active_users": 0,
-    "last_updated": "2024-01-01 00:00:00"
-  }
+    "users": {},
+    "statistics": {
+        "total_downloads": 0,
+        "active_users": 0,
+        "last_updated": "2024-01-01 00:00:00"
+    }
 }
